@@ -9,7 +9,7 @@ const mockCustomers: Customer[] = [
     firstName: 'John',
     lastName: 'Doe',
     email: 'john.doe@email.com',
-    phone: '555-0123',
+    phone: '5550123456',
     address: '123 Main St',
     city: 'Springfield',
     zipCode: '12345',
@@ -21,7 +21,7 @@ const mockCustomers: Customer[] = [
     firstName: 'Jane',
     lastName: 'Smith',
     email: 'jane.smith@email.com',
-    phone: '555-0456',
+    phone: '5550456789',
     address: '456 Oak Ave',
     city: 'Springfield',
     zipCode: '12345',
@@ -150,15 +150,39 @@ export const handlers = [
   }),
 
   http.post('/api/customers', async ({ request }) => {
-    const body = await request.json();
+    const body = (await request.json()) as Partial<Customer>;
+    // Provide defaults for required fields if missing
     const newCustomer: Customer = {
       id: String(mockCustomers.length + 1),
-      ...(body as any),
+      firstName: body.firstName ?? '',
+      lastName: body.lastName ?? '',
+      email: body.email ?? '',
+      phone: body.phone ?? '',
+      address: body.address ?? '',
+      city: body.city ?? '',
+      zipCode: body.zipCode ?? '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     mockCustomers.push(newCustomer);
     return HttpResponse.json({ data: newCustomer, success: true });
+  }),
+
+  http.put('/api/customers/:id', async ({ params, request }) => {
+    const customerIndex = mockCustomers.findIndex(c => c.id === params.id);
+    if (customerIndex === -1) {
+      return new HttpResponse(JSON.stringify({ message: 'Customer not found' }), { status: 404 });
+    }
+    const body = (await request.json()) as Partial<Customer>;
+    // Only update allowed fields
+    const updatedCustomer: Customer = {
+      ...mockCustomers[customerIndex],
+      ...body,
+      id: mockCustomers[customerIndex].id, // Ensure ID is not overwritten
+      updatedAt: new Date().toISOString()
+    };
+    mockCustomers[customerIndex] = updatedCustomer;
+    return HttpResponse.json({ data: updatedCustomer, success: true });
   }),
 
   // Cars
